@@ -1,0 +1,9 @@
+{
+  "name": "playwright-nearform-testing-playground",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.48.2"
+  }
+}
