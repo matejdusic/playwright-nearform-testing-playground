@@ -1,4 +1,4 @@
-import { test, expect, beforeEach } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { MainPage } from "../pages/MainPage";
 
 let mainPage: MainPage;
