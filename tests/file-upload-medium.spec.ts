@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 
 test("verify file upload functionality", async ({ page }) => {
   // Define the path to the file to be uploaded
-  const filePath = path.join(path.dirname(new URL(import.meta.url).pathname), '/dependencies/samplefile.txt');
+  const filePath = path.join(__dirname, '/dependencies/samplefile.txt');
 
   // Set the file to be uploaded using the file input element
   await page.getByTestId('select-file').setInputFiles(filePath);
