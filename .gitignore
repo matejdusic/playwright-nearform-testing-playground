@@ -1,2 +1,5 @@
-# Ignore Playwright report directory
-playwright-report/
+node_modules/
+/playwright-report/
+/test-results/
+/playwright/.cache/
+/blob-report/
