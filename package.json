@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "test": "playwright test",
+    "test:easy": "TEST_LEVEL=easy playwright test",
+    "test:medium": "TEST_LEVEL=medium playwright test",
+    "test:hard": "TEST_LEVEL=hard playwright test"
+  },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
     "@types/node": "^22.9.1"

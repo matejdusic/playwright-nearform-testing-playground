@@ -58,4 +58,5 @@ export default defineConfig({
       },
     },
   ],
+  grep: process.env.TEST_LEVEL ? new RegExp(`@${process.env.TEST_LEVEL}`) : /.*/,
 });

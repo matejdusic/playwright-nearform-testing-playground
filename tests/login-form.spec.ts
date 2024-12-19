@@ -3,64 +3,72 @@ import { MainPage } from "../pages/MainPage";
 
 let mainPage: MainPage;
 
-test.beforeEach(async ({ page }) => {
-  mainPage = new MainPage(page);
+test.describe('Login Form Tests @easy', () => {
+  const validCredentials = {
+    username: 'admin',
+    password: 'Passw0rd!'
+  };
 
-  // Open the main page
-  await mainPage.open();
+  const selectors = {
+    username: 'Username',
+    password: 'Password',
+    loginButton: 'login-button',
+    logoutButton: 'logout-button',
+    successMessage: '.MuiAlert-message',
+    errorMessage: 'error-invalid-credentials'
+  };
 
-  // Search for "Login Form"
-  await mainPage.searchPlayground("Login Form");
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.open();
+    await mainPage.searchPlayground("Login Form");
+    await page.getByRole("link", { name: "Login Form A typical login" }).click();
+  });
 
-  // Click on the "Login Form" block
-  await page.getByRole("link", { name: "Login Form A typical login" }).click();
-});
+  async function performLogin(page, username: string, password: string) {
+    await page.getByLabel(selectors.username).fill(username);
+    await page.getByLabel(selectors.password).fill(password);
+    await page.getByTestId(selectors.loginButton).click();
+  }
 
-test("verify successful login", async ({ page }) => {
-  // Input username
-  await page.getByLabel("Username").fill("admin");
+  test("verify successful login", async ({ page }) => {
+    await performLogin(page, validCredentials.username, validCredentials.password);
+    
+    // Wait for and verify the success message
+    await expect(page.locator(selectors.successMessage))
+      .toHaveText("You are currently logged in!");
+  });
 
-  // Input password
-  await page.getByLabel("Password").fill("Passw0rd!");
+  test("verify login with invalid credentials", async ({ page }) => {
+    await performLogin(page, 'wronguser', 'wrongpass');
+    
+    // Wait for and verify the error message
+    await expect(page.getByTestId(selectors.errorMessage))
+      .toBeVisible();
+  });
 
-  // Click the login button
-  await page.getByTestId("login-button").click();
+  test("verify complete login-logout cycle", async ({ page }) => {
+    // Login
+    await performLogin(page, validCredentials.username, validCredentials.password);
+    await expect(page.locator(selectors.successMessage))
+      .toHaveText("You are currently logged in!");
 
-  // Verify successful login by checking for a specific element or message
-  const successMessage = await page.textContent("body");
-  expect(successMessage).toContain("You are currently logged in!");
-});
+    // Logout
+    await page.getByTestId(selectors.logoutButton).click();
 
-test("verify logout functionality", async ({ page }) => {
-  // Input username
-  await page.getByLabel("Username").fill("admin");
+    // Verify return to login form
+    const formElements = [
+      page.getByLabel(selectors.username),
+      page.getByLabel(selectors.password),
+      page.getByTestId(selectors.loginButton)
+    ];
 
-  // Input password
-  await page.getByLabel("Password").fill("Passw0rd!");
+    for (const element of formElements) {
+      await expect(element).toBeVisible();
+    }
 
-  // Click the login button
-  await page.getByTestId("login-button").click();
-
-  // Verify successful login by checking for a specific element or message
-  const successMessage = await page.textContent("body");
-  expect(successMessage).toContain("You are currently logged in!");
-
-  // Click the logout button
-  await page.getByTestId("logout-button").click();
-
-  // Verify that we are back on the login form by
-  // checking for the visibility of Username and Password input fields
-  await expect(page.getByLabel("Username")).toBeVisible();
-  await expect(page.getByLabel("Password")).toBeVisible();
-
-  // Attempt incorrect login
-  await page.getByLabel("Username").fill("wronguser");
-  await page.getByLabel("Password").fill("wrongpass");
-  await page.getByTestId("login-button").click();
-
-  // Verify that the login failed by checking for an error message
-  const errorMessage = await page.textContent("body");
-  expect(errorMessage).toContain(
-    "The credentials you have provided are invalid"
-  );
+    // After logout, form should be empty and ready for new login
+    await expect(page.getByLabel(selectors.username)).toHaveValue('');
+    await expect(page.getByLabel(selectors.password)).toHaveValue('');
+  });
 });

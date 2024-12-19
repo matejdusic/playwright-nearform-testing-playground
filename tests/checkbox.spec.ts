@@ -3,133 +3,103 @@ import { MainPage } from "../pages/MainPage";
 
 let mainPage: MainPage;
 
-test.beforeEach(async ({ page }) => {
-  mainPage = new MainPage(page);
+test.describe('Checkbox Tests @easy', () => {
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.open();
+    await mainPage.searchPlayground("Checkbox");
+    await page.getByRole("link", { name: "Checkbox A set of checkbox" }).click();
+  });
 
-  // Open the main page
-  await mainPage.open();
+  test("verify initial checkbox states", async ({ page }) => {
+    // Verify content and initial checkbox states
+    await expect(page.getByText("A set of checkbox scenarios to test against.")).toBeVisible();
 
-  // Search for "Checkbox"
-  await mainPage.searchPlayground("Checkbox");
+    const checkboxes = {
+      checked: page.getByTestId("checked"),
+      disabled: page.getByTestId("disabled"),
+      required: page.getByTestId("required"),
+      requiredMessage: page.getByTestId("required-message")
+    };
 
-  // Click on the "Checkbox" block
-  await page.getByRole("link", { name: "Checkbox A set of checkbox" }).click();
-});
+    await expect(checkboxes.checked).toBeChecked();
+    await expect(checkboxes.disabled).toBeDisabled();
+    await expect(checkboxes.required).not.toBeChecked();
+    await expect(checkboxes.requiredMessage).toBeVisible();
+  });
 
-test("verify initial checkbox statuses", async ({ page }) => {
-  // Verify that the correct page is loaded by checking for specific content
-  const content = await page.textContent("body");
-  expect(content).toContain("A set of checkbox scenarios to test against.");
+  test("verify toggle functionality of checked checkbox", async ({ page }) => {
+    const checkedBox = page.getByTestId("checked");
+    
+    await checkedBox.uncheck();
+    await expect(checkedBox).not.toBeChecked();
+    
+    await checkedBox.check();
+    await expect(checkedBox).toBeChecked();
+  });
 
-  // Verify the initial status of each checkbox
-  const checkedCheckbox = page.getByTestId("checked");
-  const disabledCheckbox = page.getByTestId("disabled");
-  const requiredCheckbox = page.getByTestId("required");
-  const requiredMessage = page.getByTestId("required-message");
+  test("verify required checkbox error message", async ({ page }) => {
+    const requiredBox = page.getByTestId("required");
+    const errorMessage = page.getByTestId("required-message");
 
-  await expect(checkedCheckbox).toBeChecked();
-  await expect(disabledCheckbox).toBeDisabled();
-  await expect(requiredCheckbox).not.toBeChecked();
-  await expect(requiredMessage).toBeVisible();
-});
+    await expect(errorMessage).toBeVisible();
+    await requiredBox.check();
+    await expect(errorMessage).not.toBeVisible();
+  });
 
-test("verify you can uncheck and check the first checkbox", async ({
-  page,
-}) => {
-  // Verify you can uncheck and check the first checkbox
-  const checkedCheckbox = page.getByTestId("checked");
-  await checkedCheckbox.uncheck();
-  await expect(checkedCheckbox).not.toBeChecked();
-  await checkedCheckbox.check();
-  await expect(checkedCheckbox).toBeChecked();
-});
+  test("verify favorite and bookmark checkboxes", async ({ page }) => {
+    const checkboxes = {
+      favorite: page.getByTestId("favorite").getByRole("checkbox"),
+      bookmark: page.getByTestId("bookmark").getByRole("checkbox")
+    };
 
-test("verify the error message is displayed for the third checkbox", async ({
-  page,
-}) => {
-  // Verify the error message is displayed for the third checkbox
-  const requiredCheckbox = page.getByTestId("required");
-  const requiredMessage = page.getByTestId("required-message");
-  await expect(requiredMessage).toBeVisible();
+    // Verify initial state
+    for (const checkbox of Object.values(checkboxes)) {
+      await expect(checkbox).not.toBeChecked();
+    }
 
-  // Check the third checkbox and verify the error message is not displayed
-  await requiredCheckbox.check();
-  await expect(requiredMessage).not.toBeVisible();
-});
+    // Test check/uncheck cycle
+    for (const checkbox of Object.values(checkboxes)) {
+      await checkbox.check();
+      await expect(checkbox).toBeChecked();
+      await checkbox.uncheck();
+      await expect(checkbox).not.toBeChecked();
+    }
+  });
 
-test("verify the favorite and bookmark checkboxes functionality", async ({
-  page,
-}) => {
-  // Verify the favorite and bookmark checkboxes are not checked
-  const favoriteCheckbox = page.getByTestId("favorite").getByRole("checkbox");
-  const bookmarkCheckbox = page.getByTestId("bookmark").getByRole("checkbox");
+  test("verify parent-child checkbox relationship", async ({ page }) => {
+    const elements = {
+      parent: page.getByTestId("parent"),
+      parentLabel: page.getByLabel("Parent"),
+      children: [
+        page.getByTestId("child").first(),
+        page.getByTestId("child").nth(1)
+      ]
+    };
 
-  await expect(favoriteCheckbox).not.toBeChecked();
-  await expect(bookmarkCheckbox).not.toBeChecked();
+    // Check parent affects children
+    await elements.parent.check();
+    await expect(elements.parent).toBeChecked();
+    for (const child of elements.children) {
+      await expect(child).toBeChecked();
+    }
+    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "false");
 
-  // Verify you can check and uncheck the favorite and bookmark checkboxes
-  await favoriteCheckbox.check();
-  await expect(favoriteCheckbox).toBeChecked();
-  await bookmarkCheckbox.check();
-  await expect(bookmarkCheckbox).toBeChecked();
-  await favoriteCheckbox.uncheck();
-  await expect(favoriteCheckbox).not.toBeChecked();
-  await bookmarkCheckbox.uncheck();
-  await expect(bookmarkCheckbox).not.toBeChecked();
-});
+    // Uncheck parent affects children
+    await elements.parent.uncheck();
+    await expect(elements.parent).not.toBeChecked();
+    for (const child of elements.children) {
+      await expect(child).not.toBeChecked();
+    }
+    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "false");
 
-test("verify the parent and child checkboxes functionality", async ({
-  page,
-}) => {
-  // Verify the parent and child checkboxes functionality
-  const parentCheckbox = page.getByTestId("parent");
-  const parentCheckboxLabel = page.getByLabel("Parent");
-  const childFirstCheckbox = page.getByTestId("child").first();
-  const childSecondCheckbox = page.getByTestId("child").nth(1);
-
-  // Check the parent checkbox and verify both child checkboxes are checked
-  await parentCheckbox.check();
-  await expect(parentCheckbox).toBeChecked();
-  await expect(childFirstCheckbox).toBeChecked();
-  await expect(childSecondCheckbox).toBeChecked();
-  await expect(parentCheckboxLabel).toHaveAttribute(
-    "data-indeterminate",
-    "false"
-  );
-
-  // Uncheck the parent checkbox and verify both child checkboxes are unchecked
-  await parentCheckbox.uncheck();
-  await expect(parentCheckbox).not.toBeChecked();
-  await expect(childFirstCheckbox).not.toBeChecked();
-  await expect(childSecondCheckbox).not.toBeChecked();
-  await expect(parentCheckboxLabel).toHaveAttribute(
-    "data-indeterminate",
-    "false"
-  );
-
-  // Check the first child checkbox and verify the parent checkbox is partially checked
-  await childFirstCheckbox.check();
-  await expect(childFirstCheckbox).toBeChecked();
-  await expect(childSecondCheckbox).not.toBeChecked();
-  await expect(parentCheckboxLabel).toHaveAttribute(
-    "data-indeterminate",
-    "true"
-  );
-
-  // Check the parent checkbox and verify both child checkboxes are checked
-  await parentCheckbox.check();
-  await expect(childFirstCheckbox).toBeChecked();
-  await expect(childSecondCheckbox).toBeChecked();
-  await expect(parentCheckboxLabel).toHaveAttribute(
-    "data-indeterminate",
-    "false"
-  );
-
-  // Uncheck the second child checkbox and verify the parent checkbox is partially checked
-  await childSecondCheckbox.uncheck();
-  await expect(childSecondCheckbox).not.toBeChecked();
-  await expect(parentCheckboxLabel).toHaveAttribute(
-    "data-indeterminate",
-    "true"
-  );
+    // Check one child affects parent state
+    await elements.children[0].check();
+    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "true");
+    
+    // Check all children affects parent state
+    await elements.children[1].check();
+    await expect(elements.parent).toBeChecked();
+    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "false");
+  });
 });

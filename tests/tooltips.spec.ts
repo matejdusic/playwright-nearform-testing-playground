@@ -3,51 +3,48 @@ import { MainPage } from "../pages/MainPage";
 
 let mainPage: MainPage;
 
-test.beforeEach(async ({ page }) => {
-  mainPage = new MainPage(page);
+test.describe('Tooltip Tests @easy', () => {
+  const tooltips = {
+    delete: {
+      buttonId: 'delete-button',
+      expectedText: "You don't have permission to do this"
+    },
+    moreInfo: {
+      buttonId: 'more-info-button',
+      expectedText: "For more information, click here: Testing Playground"
+    },
+    longText: {
+      elementId: 'text',
+      expectedText: "A really really long text example"
+    }
+  };
 
-  // Open the main page
-  await mainPage.open();
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.open();
+    await mainPage.searchPlayground("Tooltips");
+    await page.getByRole("link", { name: "Tooltips A set of tooltips" }).click();
+  });
 
-  // Search for "Tooltips"
-  await mainPage.searchPlayground("Tooltips");
+  async function verifyTooltip(page, elementId: string, expectedText: string, options = {}) {
+    const element = page.getByTestId(elementId);
+    await element.hover();
+    
+    if (elementId === 'text') {
+      const tooltip = page.getByRole("tooltip", { name: "A really really long text" }).locator("div");
+      await expect(tooltip).toHaveText(expectedText);
+    } else {
+      await expect(page.getByText(expectedText, { exact: true })).toBeVisible();
+    }
+  }
 
-  // Click on the "Tooltips" block
-  await page.getByRole("link", { name: "Tooltips A set of tooltips" }).click();
-});
-
-test("verify tooltip for delete button", async ({ page }) => {
-  // Hover over the delete button
-  await page.getByTestId("delete-button").hover();
-
-  // Verify the tooltip text
-  const tooltipText = await page
-    .getByText("You don't have permission to")
-    .textContent();
-  expect(tooltipText).toBe("You don't have permission to do this");
-});
-
-test("verify tooltip for more info button", async ({ page }) => {
-  // Hover over the more info button
-  await page.getByTestId("more-info-button").hover();
-
-  // Verify the tooltip text
-  const tooltipText = await page
-    .getByText("For more information, click")
-    .textContent();
-  expect(tooltipText).toBe(
-    "For more information, click here: Testing Playground"
-  );
-});
-
-test("verify tooltip for long text", async ({ page }) => {
-  // Hover over the long text element
-  await page.getByTestId("text").hover();
-
-  // Verify the tooltip text
-  const tooltipText = await page
-    .getByRole("tooltip", { name: "A really really long text" })
-    .locator("div")
-    .textContent();
-  expect(tooltipText).toBe("A really really long text example");
+  for (const [name, data] of Object.entries(tooltips)) {
+    test(`verify tooltip for ${name}`, async ({ page }) => {
+      await verifyTooltip(
+        page,
+        data.buttonId || data.elementId,
+        data.expectedText
+      );
+    });
+  }
 });

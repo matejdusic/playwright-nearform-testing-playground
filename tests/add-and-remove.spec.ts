@@ -3,63 +3,56 @@ import { MainPage } from "../pages/MainPage";
 
 let mainPage: MainPage;
 
-test.beforeEach(async ({ page }) => {
-  mainPage = new MainPage(page);
+test.describe('Add/Remove Elements Tests @easy', () => {
+  test.beforeEach(async ({ page }) => {
+    mainPage = new MainPage(page);
+    await mainPage.open();
+    await mainPage.searchPlayground("Add/Remove");
+    await page.getByRole("link", { name: "Add/Remove Dynamically add" }).click();
+  });
 
-  // Open the main page
-  await mainPage.open();
+  test("verify page content", async ({ page }) => {
+    // Use a more specific selector with class to ensure uniqueness
+    await expect(page.locator('p.mb-4.text-sm.text-foreground-muted'))
+      .toHaveText("Dynamically add and remove elements from the page");
+  });
 
-  // Search for "Add/Remove"
-  await mainPage.searchPlayground("Add/Remove");
+  test("verify add element functionality", async ({ page }) => {
+    const addElementButton = page.getByTestId("add-element");
+    const numberOfElements = Math.floor(Math.random() * 9) + 2; // 2 to 10 elements
+    
+    // Add elements
+    await Promise.all(
+      Array.from({ length: numberOfElements }, () => addElementButton.click())
+    );
 
-  // Click on the "Add/Remove" block
-  await page.getByRole("link", { name: "Add/Remove Dynamically add" }).click();
-});
+    // Verify all elements are added
+    const removeButtons = await page.getByTestId(/^remove-element-\d+$/).all();
+    expect(removeButtons).toHaveLength(numberOfElements);
+    
+    // Verify each button is visible
+    for (const button of removeButtons) {
+      await expect(button).toBeVisible();
+    }
+  });
 
-test("verify the page is loaded correctly", async ({ page }) => {
-  // Verify that the correct page is loaded by checking for specific content
-  const content = await page.textContent("body");
-  expect(content).toContain(
-    "Dynamically add and remove elements from the page"
-  );
-});
+  test("verify clear storage functionality", async ({ page }) => {
+    const addElementButton = page.getByTestId("add-element");
+    const numberOfElements = Math.floor(Math.random() * 9) + 2;
+    
+    // Add elements
+    await Promise.all(
+      Array.from({ length: numberOfElements }, () => addElementButton.click())
+    );
 
-test("verify add element functionality", async ({ page }) => {
-  // Click on ADD ELEMENT a random number of times between 2 and 10
-  const addElementButton = page.getByTestId("add-element");
-  const numberOfClicks = Math.floor(Math.random() * 9) + 2;
-  for (let i = 0; i < numberOfClicks; i++) {
-    await addElementButton.click();
-  }
+    // Verify elements are added
+    const removeButtonsLocator = page.getByTestId(/^remove-element-\d+$/);
+    await expect(removeButtonsLocator).toHaveCount(numberOfElements);
 
-  // Verify that the correct number of REMOVE ELEMENT buttons are added
-  for (let i = 1; i <= numberOfClicks; i++) {
-    const removeElementButton = page.getByTestId(`remove-element-${i}`);
-    await expect(removeElementButton).toBeVisible();
-  }
-});
+    // Clear storage
+    await page.getByTestId("clear-storage").click();
 
-test("verify CLEAR STORAGE functionality", async ({ page }) => {
-  // Click on ADD ELEMENT a random number of times between 2 and 10
-  const addElementButton = page.getByTestId("add-element");
-  const numberOfClicks = Math.floor(Math.random() * 9) + 2;
-  for (let i = 0; i < numberOfClicks; i++) {
-    await addElementButton.click();
-  }
-
-  // Verify that the correct number of REMOVE ELEMENT buttons are added
-  for (let i = 1; i <= numberOfClicks; i++) {
-    const removeElementButton = page.getByTestId(`remove-element-${i}`);
-    await expect(removeElementButton).toBeVisible();
-  }
-
-  // Click on CLEAR STORAGE
-  const clearStorageButton = page.getByTestId("clear-storage");
-  await clearStorageButton.click();
-
-  // Verify that all REMOVE ELEMENT buttons are removed
-  for (let i = 1; i <= numberOfClicks; i++) {
-    const removeElementButton = page.getByTestId(`remove-element-${i}`);
-    await expect(removeElementButton).not.toBeVisible();
-  }
+    // Verify all elements are removed
+    await expect(removeButtonsLocator).toHaveCount(0);
+  });
 });
