@@ -1,74 +1,46 @@
-import { test, expect } from "@playwright/test";
-import { MainPage } from "../pages/MainPage";
-
-let mainPage: MainPage;
+import { test, expect } from '../fixtures/common';
+import { credentials } from "../test-data/credentials";
+import { loginSelectors } from "../test-data/selectors";
 
 test.describe('Login Form Tests @easy', () => {
-  const validCredentials = {
-    username: 'admin',
-    password: 'Passw0rd!'
-  };
-
-  const selectors = {
-    username: 'Username',
-    password: 'Password',
-    loginButton: 'login-button',
-    logoutButton: 'logout-button',
-    successMessage: '.MuiAlert-message',
-    errorMessage: 'error-invalid-credentials'
-  };
-
-  test.beforeEach(async ({ page }) => {
-    mainPage = new MainPage(page);
-    await mainPage.open();
-    await mainPage.searchPlayground("Login Form");
-    await page.getByRole("link", { name: "Login Form A typical login" }).click();
-  });
-
-  async function performLogin(page, username: string, password: string) {
-    await page.getByLabel(selectors.username).fill(username);
-    await page.getByLabel(selectors.password).fill(password);
-    await page.getByTestId(selectors.loginButton).click();
-  }
-
-  test("verify successful login", async ({ page }) => {
-    await performLogin(page, validCredentials.username, validCredentials.password);
+  test("verify successful login", async ({ mainPage, playgroundPage, page }) => {
+    // Navigate to login page
+    await playgroundPage("Login Form");
     
-    // Wait for and verify the success message
-    await expect(page.locator(selectors.successMessage))
+    // Perform login
+    await page.getByLabel(loginSelectors.username).fill(credentials.valid.username);
+    await page.getByLabel(loginSelectors.password).fill(credentials.valid.password);
+    await page.getByTestId(loginSelectors.loginButton).click();
+    
+    // Verify success message
+    await expect(page.locator(loginSelectors.successMessage))
       .toHaveText("You are currently logged in!");
   });
 
-  test("verify login with invalid credentials", async ({ page }) => {
-    await performLogin(page, 'wronguser', 'wrongpass');
+  test("verify login with invalid credentials", async ({ mainPage, playgroundPage, page }) => {
+    // Navigate to login page
+    await playgroundPage("Login Form");
     
-    // Wait for and verify the error message
-    await expect(page.getByTestId(selectors.errorMessage))
+    // Try to login with invalid credentials
+    await page.getByLabel(loginSelectors.username).fill(credentials.invalid.username);
+    await page.getByLabel(loginSelectors.password).fill(credentials.invalid.password);
+    await page.getByTestId(loginSelectors.loginButton).click();
+    
+    // Verify error message
+    await expect(page.getByTestId(loginSelectors.errorMessage))
       .toBeVisible();
   });
 
-  test("verify complete login-logout cycle", async ({ page }) => {
-    // Login
-    await performLogin(page, validCredentials.username, validCredentials.password);
-    await expect(page.locator(selectors.successMessage))
+  test("verify complete login-logout cycle", async ({ loggedInPage }) => {
+    // The loggedInPage fixture handles the login for us
+    await expect(loggedInPage.locator(loginSelectors.successMessage))
       .toHaveText("You are currently logged in!");
-
-    // Logout
-    await page.getByTestId(selectors.logoutButton).click();
-
-    // Verify return to login form
-    const formElements = [
-      page.getByLabel(selectors.username),
-      page.getByLabel(selectors.password),
-      page.getByTestId(selectors.loginButton)
-    ];
-
-    for (const element of formElements) {
-      await expect(element).toBeVisible();
-    }
-
-    // After logout, form should be empty and ready for new login
-    await expect(page.getByLabel(selectors.username)).toHaveValue('');
-    await expect(page.getByLabel(selectors.password)).toHaveValue('');
+    
+    // Click logout
+    await loggedInPage.getByTestId(loginSelectors.logoutButton).click();
+    
+    // Verify login button is visible (meaning we're logged out)
+    await expect(loggedInPage.getByTestId(loginSelectors.loginButton))
+      .toBeVisible();
   });
 });

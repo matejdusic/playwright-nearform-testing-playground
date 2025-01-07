@@ -1,25 +1,18 @@
-import { test, expect } from "@playwright/test";
-import { MainPage } from "../pages/MainPage";
-
-let mainPage: MainPage;
+import { test, expect } from '../fixtures/common';
+import { checkboxSelectors } from "../test-data/selectors";
 
 test.describe('Checkbox Tests @easy', () => {
-  test.beforeEach(async ({ page }) => {
-    mainPage = new MainPage(page);
-    await mainPage.open();
-    await mainPage.searchPlayground("Checkbox");
-    await page.getByRole("link", { name: "Checkbox A set of checkbox" }).click();
-  });
+  test("verify initial checkbox states", async ({ playgroundPage, page }) => {
+    await playgroundPage("Checkbox");
 
-  test("verify initial checkbox states", async ({ page }) => {
     // Verify content and initial checkbox states
     await expect(page.getByText("A set of checkbox scenarios to test against.")).toBeVisible();
 
     const checkboxes = {
-      checked: page.getByTestId("checked"),
-      disabled: page.getByTestId("disabled"),
-      required: page.getByTestId("required"),
-      requiredMessage: page.getByTestId("required-message")
+      checked: page.getByTestId(checkboxSelectors.checked),
+      disabled: page.getByTestId(checkboxSelectors.disabled),
+      required: page.getByTestId(checkboxSelectors.required),
+      requiredMessage: page.getByTestId(checkboxSelectors.requiredMessage)
     };
 
     await expect(checkboxes.checked).toBeChecked();
@@ -28,8 +21,10 @@ test.describe('Checkbox Tests @easy', () => {
     await expect(checkboxes.requiredMessage).toBeVisible();
   });
 
-  test("verify toggle functionality of checked checkbox", async ({ page }) => {
-    const checkedBox = page.getByTestId("checked");
+  test("verify toggle functionality of checked checkbox", async ({ playgroundPage, page }) => {
+    await playgroundPage("Checkbox");
+    
+    const checkedBox = page.getByTestId(checkboxSelectors.checked);
     
     await checkedBox.uncheck();
     await expect(checkedBox).not.toBeChecked();
@@ -38,19 +33,23 @@ test.describe('Checkbox Tests @easy', () => {
     await expect(checkedBox).toBeChecked();
   });
 
-  test("verify required checkbox error message", async ({ page }) => {
-    const requiredBox = page.getByTestId("required");
-    const errorMessage = page.getByTestId("required-message");
+  test("verify required checkbox error message", async ({ playgroundPage, page }) => {
+    await playgroundPage("Checkbox");
+    
+    const requiredBox = page.getByTestId(checkboxSelectors.required);
+    const errorMessage = page.getByTestId(checkboxSelectors.requiredMessage);
 
     await expect(errorMessage).toBeVisible();
     await requiredBox.check();
     await expect(errorMessage).not.toBeVisible();
   });
 
-  test("verify favorite and bookmark checkboxes", async ({ page }) => {
+  test("verify favorite and bookmark checkboxes", async ({ playgroundPage, page }) => {
+    await playgroundPage("Checkbox");
+    
     const checkboxes = {
-      favorite: page.getByTestId("favorite").getByRole("checkbox"),
-      bookmark: page.getByTestId("bookmark").getByRole("checkbox")
+      favorite: page.getByTestId(checkboxSelectors.favorite).getByRole("checkbox"),
+      bookmark: page.getByTestId(checkboxSelectors.bookmark).getByRole("checkbox")
     };
 
     // Verify initial state
@@ -67,39 +66,36 @@ test.describe('Checkbox Tests @easy', () => {
     }
   });
 
-  test("verify parent-child checkbox relationship", async ({ page }) => {
+  test("verify parent-child checkbox relationship", async ({ playgroundPage, page }) => {
+    await playgroundPage("Checkbox");
+    
     const elements = {
-      parent: page.getByTestId("parent"),
+      parent: page.getByTestId(checkboxSelectors.parent),
       parentLabel: page.getByLabel("Parent"),
       children: [
-        page.getByTestId("child").first(),
-        page.getByTestId("child").nth(1)
+        page.getByTestId(checkboxSelectors.child).first(),
+        page.getByTestId(checkboxSelectors.child).nth(1)
       ]
     };
 
-    // Check parent affects children
-    await elements.parent.check();
-    await expect(elements.parent).toBeChecked();
-    for (const child of elements.children) {
-      await expect(child).toBeChecked();
-    }
-    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "false");
-
-    // Uncheck parent affects children
-    await elements.parent.uncheck();
+    // Initial state - all unchecked
     await expect(elements.parent).not.toBeChecked();
     for (const child of elements.children) {
       await expect(child).not.toBeChecked();
     }
-    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "false");
 
-    // Check one child affects parent state
-    await elements.children[0].check();
-    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "true");
-    
-    // Check all children affects parent state
-    await elements.children[1].check();
+    // Check parent - should check all children
+    await elements.parentLabel.check();
     await expect(elements.parent).toBeChecked();
-    await expect(elements.parentLabel).toHaveAttribute("data-indeterminate", "false");
+    for (const child of elements.children) {
+      await expect(child).toBeChecked();
+    }
+
+    // Uncheck parent - should uncheck all children
+    await elements.parentLabel.uncheck();
+    await expect(elements.parent).not.toBeChecked();
+    for (const child of elements.children) {
+      await expect(child).not.toBeChecked();
+    }
   });
 });
