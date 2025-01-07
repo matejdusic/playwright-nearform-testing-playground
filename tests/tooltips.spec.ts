@@ -40,9 +40,10 @@ test.describe('Tooltip Tests @easy', () => {
 
   for (const [name, data] of Object.entries(tooltips)) {
     test(`verify tooltip for ${name}`, async ({ page }) => {
+      const id = 'buttonId' in data ? data.buttonId : data.elementId;
       await verifyTooltip(
         page,
-        data.buttonId || data.elementId,
+        id,
         data.expectedText
       );
     });
